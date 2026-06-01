@@ -1,10 +1,10 @@
 import "dotenv/config"
 import { PrismaClient } from "@prisma/client"
+import { PrismaNeon } from "@prisma/adapter-neon"
 import bcrypt from "bcryptjs"
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-} as ConstructorParameters<typeof PrismaClient>[0])
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0])
 
 async function main() {
   const password = await bcrypt.hash("admin123", 10)
