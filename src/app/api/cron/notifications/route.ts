@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { NotificationType } from "@prisma/client"
 
-// Call this route via a cron job (e.g., every morning)
+type NotificationType = "TASK_DUE_TODAY" | "TASK_OVERDUE" | "TASK_DUE_SOON" | "DAILY_SUMMARY"
+
 export async function GET() {
   const now = new Date()
   const today = new Date(now.setHours(0, 0, 0, 0))
@@ -11,19 +11,16 @@ export async function GET() {
   const dayAfter = new Date(today)
   dayAfter.setDate(today.getDate() + 2)
 
-  // Overdue tasks
   const overdue = await prisma.task.findMany({
     where: { deadline: { lt: today }, status: { notIn: ["DONE"] } },
     include: { assignees: { include: { user: true } } },
   })
 
-  // Due today
   const dueToday = await prisma.task.findMany({
     where: { deadline: { gte: today, lt: tomorrow }, status: { notIn: ["DONE"] } },
     include: { assignees: { include: { user: true } } },
   })
 
-  // Due tomorrow (soon)
   const dueSoon = await prisma.task.findMany({
     where: { deadline: { gte: tomorrow, lt: dayAfter }, status: { notIn: ["DONE"] } },
     include: { assignees: { include: { user: true } } },
@@ -33,19 +30,19 @@ export async function GET() {
 
   for (const task of overdue) {
     for (const a of task.assignees) {
-      notifications.push({ type: NotificationType.TASK_OVERDUE, title: "Task Overdue", message: `"${task.title}" is overdue`, userId: a.userId, taskId: task.id })
+      notifications.push({ type: "TASK_OVERDUE", title: "Task Overdue", message: `"${task.title}" is overdue`, userId: a.userId, taskId: task.id })
     }
   }
 
   for (const task of dueToday) {
     for (const a of task.assignees) {
-      notifications.push({ type: NotificationType.TASK_DUE_TODAY, title: "Due Today", message: `"${task.title}" is due today`, userId: a.userId, taskId: task.id })
+      notifications.push({ type: "TASK_DUE_TODAY", title: "Due Today", message: `"${task.title}" is due today`, userId: a.userId, taskId: task.id })
     }
   }
 
   for (const task of dueSoon) {
     for (const a of task.assignees) {
-      notifications.push({ type: NotificationType.TASK_DUE_SOON, title: "Due Tomorrow", message: `"${task.title}" is due tomorrow`, userId: a.userId, taskId: task.id })
+      notifications.push({ type: "TASK_DUE_SOON", title: "Due Tomorrow", message: `"${task.title}" is due tomorrow`, userId: a.userId, taskId: task.id })
     }
   }
 
@@ -53,7 +50,6 @@ export async function GET() {
     await prisma.notification.createMany({ data: notifications })
   }
 
-  // Daily summary for all users
   const users = await prisma.user.findMany({ select: { id: true } })
   const summaries = users.map((u: { id: string }) => ({
     type: "DAILY_SUMMARY" as const,
