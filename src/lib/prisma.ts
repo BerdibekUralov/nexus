@@ -1,7 +1,8 @@
+import ws from "ws"
 import { neonConfig } from "@neondatabase/serverless"
 import { PrismaNeon } from "@prisma/adapter-neon"
 
-neonConfig.fetchConnectionCache = true
+neonConfig.webSocketConstructor = ws
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { PrismaClient } = require("@prisma/client")
