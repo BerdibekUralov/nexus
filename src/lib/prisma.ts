@@ -1,12 +1,13 @@
-import { Pool } from "pg"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { neonConfig } from "@neondatabase/serverless"
+import { PrismaNeon } from "@prisma/adapter-neon"
+
+neonConfig.fetchConnectionCache = true
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { PrismaClient } = require("@prisma/client")
 
 function createPrismaClient() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-  const adapter = new PrismaPg(pool)
+  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL })
   return new PrismaClient({ adapter })
 }
 
