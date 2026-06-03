@@ -199,7 +199,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   if (!project) return <div className="p-8 text-gray-400">Project not found</div>
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
         <Link href="/tasks" className="text-gray-400 hover:text-white transition-colors">

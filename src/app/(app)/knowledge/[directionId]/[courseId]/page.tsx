@@ -71,7 +71,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
 
   const fetchCourse = async () => {
     setLoading(true)
-    const res = await fetch(`/api/directions/${directionId}/courses/${courseId}`)
+    const res = await fetch(`/api/knowledge/courses/${courseId}`)
     if (res.ok) {
       const data = await res.json()
       setCourse(data)
@@ -102,11 +102,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   const handleSaveModule = async () => {
     setModuleSaving(true)
     if (moduleModal === "create") {
-      await fetch(`/api/directions/${directionId}/courses/${courseId}/modules`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: moduleName })
+      await fetch(`/api/knowledge/modules`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: moduleName, courseId })
       })
     } else if (editModuleId) {
-      await fetch(`/api/directions/${directionId}/courses/${courseId}/modules/${editModuleId}`, {
+      await fetch(`/api/knowledge/modules/${editModuleId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: moduleName })
       })
     }
@@ -117,7 +117,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
 
   const handleDeleteModule = async () => {
     if (!deleteModuleId) return
-    await fetch(`/api/directions/${directionId}/courses/${courseId}/modules/${deleteModuleId}`, { method: "DELETE" })
+    await fetch(`/api/knowledge/modules/${deleteModuleId}`, { method: "DELETE" })
     setDeleteModuleId(null)
     fetchCourse()
   }
@@ -126,11 +126,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   const handleSaveUnit = async () => {
     setUnitSaving(true)
     if (unitModal === "create" && unitModuleId) {
-      await fetch(`/api/directions/${directionId}/courses/${courseId}/modules/${unitModuleId}/units`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: unitName })
+      await fetch(`/api/knowledge/units`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: unitName, moduleId: unitModuleId })
       })
-    } else if (editUnitId && unitModuleId) {
-      await fetch(`/api/directions/${directionId}/courses/${courseId}/modules/${unitModuleId}/units/${editUnitId}`, {
+    } else if (editUnitId) {
+      await fetch(`/api/knowledge/units/${editUnitId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: unitName })
       })
     }
@@ -140,15 +140,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   }
 
   const handleDeleteUnit = async () => {
-    if (!deleteUnitId || !unitModuleId) return
-    await fetch(`/api/directions/${directionId}/courses/${courseId}/modules/${unitModuleId}/units/${deleteUnitId}`, { method: "DELETE" })
+    if (!deleteUnitId) return
+    await fetch(`/api/knowledge/units/${deleteUnitId}`, { method: "DELETE" })
     setDeleteUnitId(null)
     if (selectedUnit?.id === deleteUnitId) setSelectedUnit(null)
     fetchCourse()
   }
 
-  const toggleUnitComplete = async (unit: Unit, moduleId: string) => {
-    await fetch(`/api/directions/${directionId}/courses/${courseId}/modules/${moduleId}/units/${unit.id}`, {
+  const toggleUnitComplete = async (unit: Unit, _moduleId: string) => {
+    await fetch(`/api/knowledge/units/${unit.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isCompleted: !unit.isCompleted })
     })
     fetchCourse()
@@ -156,7 +156,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
 
   // Certificate
   const saveCertificate = async () => {
-    await fetch(`/api/directions/${directionId}/courses/${courseId}`, {
+    await fetch(`/api/knowledge/courses/${courseId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ certificate: certValue })
     })
     setCertEdit(false)
@@ -168,12 +168,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
     if (!selectedUnit || !noteContent.trim()) return
     setNoteSaving(true)
     if (editNoteId) {
-      await fetch(`/api/units/${selectedUnit.id}/notes/${editNoteId}`, {
+      await fetch(`/api/knowledge/notes/${editNoteId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: noteContent })
       })
     } else {
-      await fetch(`/api/units/${selectedUnit.id}/notes`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: noteContent })
+      await fetch(`/api/knowledge/units/${selectedUnit.id}/content`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "note", content: noteContent })
       })
     }
     setNoteContent("")
@@ -183,8 +183,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   }
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!selectedUnit) return
-    await fetch(`/api/units/${selectedUnit.id}/notes/${noteId}`, { method: "DELETE" })
+    await fetch(`/api/knowledge/notes/${noteId}`, { method: "DELETE" })
     fetchCourse()
   }
 
@@ -193,12 +192,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
     if (!selectedUnit || !fcFront.trim() || !fcBack.trim()) return
     setFcSaving(true)
     if (editFcId) {
-      await fetch(`/api/units/${selectedUnit.id}/flashcards/${editFcId}`, {
+      await fetch(`/api/knowledge/flashcards/${editFcId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ front: fcFront, back: fcBack })
       })
     } else {
-      await fetch(`/api/units/${selectedUnit.id}/flashcards`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ front: fcFront, back: fcBack })
+      await fetch(`/api/knowledge/units/${selectedUnit.id}/content`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "flashcard", front: fcFront, back: fcBack })
       })
     }
     setFcFront(""); setFcBack(""); setEditFcId(null); setFcSaving(false)
@@ -206,8 +205,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   }
 
   const handleDeleteFc = async (fcId: string) => {
-    if (!selectedUnit) return
-    await fetch(`/api/units/${selectedUnit.id}/flashcards/${fcId}`, { method: "DELETE" })
+    await fetch(`/api/knowledge/flashcards/${fcId}`, { method: "DELETE" })
     fetchCourse()
   }
 
@@ -224,25 +222,23 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   const handleSaveChecklist = async () => {
     if (!selectedUnit || !clTitle.trim()) return
     setClSaving(true)
-    await fetch(`/api/units/${selectedUnit.id}/checklists`, {
+    await fetch(`/api/knowledge/units/${selectedUnit.id}/content`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: clTitle, items: clItems.filter(i => i.trim()).map((text, order) => ({ text, order })) })
+      body: JSON.stringify({ type: "checklist", title: clTitle, items: clItems.filter(i => i.trim()) })
     })
     setClTitle(""); setClItems([""]); setClSaving(false)
     fetchCourse()
   }
 
   const toggleChecklistItem = async (checklistId: string, itemId: string, isCompleted: boolean) => {
-    if (!selectedUnit) return
-    await fetch(`/api/units/${selectedUnit.id}/checklists/${checklistId}/items/${itemId}`, {
+    await fetch(`/api/knowledge/checklists/${checklistId}/items/${itemId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isCompleted: !isCompleted })
     })
     fetchCourse()
   }
 
   const handleDeleteChecklist = async (checklistId: string) => {
-    if (!selectedUnit) return
-    await fetch(`/api/units/${selectedUnit.id}/checklists/${checklistId}`, { method: "DELETE" })
+    await fetch(`/api/knowledge/checklists/${checklistId}`, { method: "DELETE" })
     fetchCourse()
   }
 
@@ -258,9 +254,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
   const completedUnits = course.modules.reduce((s, m) => s + m.units.filter(u => u.isCompleted).length, 0)
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col md:flex-row h-full">
       {/* Main content */}
-      <div className="flex-1 p-8 overflow-y-auto min-w-0">
+      <div className="flex-1 p-4 sm:p-8 overflow-y-auto min-w-0">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
           <Link href="/knowledge" className="text-gray-400 hover:text-white transition-colors">
@@ -389,7 +385,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ directi
 
       {/* Unit detail panel */}
       {freshSelectedUnit && (
-        <div className="w-96 border-l border-gray-800 bg-gray-900 flex flex-col overflow-hidden flex-shrink-0">
+        <div className="w-full md:w-96 border-t md:border-t-0 md:border-l border-gray-800 bg-gray-900 flex flex-col overflow-hidden flex-shrink-0 md:h-full">
           <div className="p-5 border-b border-gray-800 flex items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-white">{freshSelectedUnit.name}</h3>

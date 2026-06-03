@@ -32,7 +32,7 @@ export default function KnowledgePage() {
 
   const fetchDirections = async () => {
     setLoading(true)
-    const res = await fetch("/api/directions")
+    const res = await fetch("/api/knowledge/directions")
     if (res.ok) setDirections(await res.json())
     setLoading(false)
   }
@@ -64,9 +64,9 @@ export default function KnowledgePage() {
   const handleSave = async () => {
     setSaving(true)
     if (modal === "create") {
-      await fetch("/api/directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      await fetch("/api/knowledge/directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
     } else if (editId) {
-      await fetch(`/api/directions/${editId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      await fetch(`/api/knowledge/directions/${editId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
     }
     setSaving(false)
     setModal(null)
@@ -75,13 +75,13 @@ export default function KnowledgePage() {
 
   const handleDelete = async () => {
     if (!deleteId) return
-    await fetch(`/api/directions/${deleteId}`, { method: "DELETE" })
+    await fetch(`/api/knowledge/directions/${deleteId}`, { method: "DELETE" })
     setDeleteId(null)
     fetchDirections()
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Knowledge Base</h1>

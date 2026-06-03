@@ -109,18 +109,16 @@ export default function HabitsPage() {
   }
 
   const toggleToday = async (habit: Habit) => {
-    const completed = isTodayCompleted(habit.logs)
-    if (completed) {
-      const todayLog = habit.logs.find(l => l.date.split("T")[0] === new Date().toISOString().split("T")[0])
-      if (todayLog) await fetch(`/api/habits/${habit.id}/logs/${todayLog.id}`, { method: "DELETE" })
-    } else {
-      await fetch(`/api/habits/${habit.id}/logs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }) })
-    }
+    await fetch(`/api/habits/${habit.id}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
+    })
     fetchHabits()
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Habit Tracker</h1>
