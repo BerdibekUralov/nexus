@@ -26,8 +26,10 @@ model User {
   transactions  Transaction[]
   budgets       Budget[]
   categories    Category[]
-  directions    Direction[]
-  notifications Notification[]
+  directions       Direction[]
+  notifications    Notification[]
+  contentItems     ContentItem[]
+  jobApplications  JobApplication[]
 }
 
 model Session {
@@ -362,6 +364,71 @@ model CourseTag {
   tag    KnowledgeTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([courseId, tagId])
+}
+
+// ─── CONTENT & MARKETING ─────────────────────────────────────────────────────
+
+model ContentItem {
+  id          String          @id @default(cuid())
+  title       String
+  body        String?         @db.Text
+  platform    ContentPlatform
+  status      ContentStatus   @default(IDEA)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  tags        String[]
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model JobApplication {
+  id        String      @id @default(cuid())
+  title     String
+  company   String?
+  platform  JobPlatform
+  status    JobStatus   @default(SAVED)
+  url       String?
+  notes     String?     @db.Text
+  appliedAt DateTime?
+  userId    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ContentPlatform {
+  BLOG
+  LINKEDIN
+  WEBSITE
+  TELEGRAM
+}
+
+enum ContentStatus {
+  IDEA
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+}
+
+enum JobPlatform {
+  UPWORK
+  INDEED
+  LINKEDIN
+  DIRECT
+  OTHER
+}
+
+enum JobStatus {
+  SAVED
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  REJECTED
 }
 
 // ─── NOTIFICATIONS ───────────────────────────────────────────────────────────

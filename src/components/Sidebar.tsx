@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard, CheckSquare, Activity, DollarSign,
-  BookOpen, Bell, LogOut, Users, ChevronLeft, ChevronRight, Menu, X,
+  BookOpen, Bell, LogOut, Users, ChevronLeft, ChevronRight, Menu, X, Megaphone,
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,7 @@ const userNavItems = [
   { href: "/finance", icon: DollarSign, label: "Finance" },
   { href: "/knowledge", icon: BookOpen, label: "Knowledge" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
+  { href: "/content", icon: Megaphone, label: "Content" },
 ]
 
 const adminNavItems = [
