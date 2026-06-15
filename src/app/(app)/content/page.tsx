@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import {
   Plus, Pencil, Trash2, ExternalLink, X, ChevronDown,
-  FileText, Linkedin, Globe, Send, Briefcase, Lightbulb,
+  FileText, Link2, Globe, Send, Briefcase, Lightbulb,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -42,7 +42,7 @@ interface JobApplication {
 
 const CONTENT_PLATFORMS: { value: ContentPlatform; label: string; icon: React.ElementType; color: string }[] = [
   { value: "BLOG", label: "Blog", icon: FileText, color: "text-amber-400" },
-  { value: "LINKEDIN", label: "LinkedIn", icon: Linkedin, color: "text-blue-400" },
+  { value: "LINKEDIN", label: "LinkedIn", icon: Link2, color: "text-blue-400" },
   { value: "WEBSITE", label: "Website", icon: Globe, color: "text-emerald-400" },
   { value: "TELEGRAM", label: "Telegram", icon: Send, color: "text-sky-400" },
 ]
