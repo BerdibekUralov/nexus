@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import {
   Plus, Pencil, Trash2, ExternalLink, X, ChevronDown,
   FileText, Link2, Globe, Send, Briefcase, Lightbulb,
+  CalendarDays, List, ChevronLeft, ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -40,35 +41,42 @@ interface JobApplication {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CONTENT_PLATFORMS: { value: ContentPlatform; label: string; icon: React.ElementType; color: string }[] = [
-  { value: "BLOG", label: "Blog", icon: FileText, color: "text-amber-400" },
-  { value: "LINKEDIN", label: "LinkedIn", icon: Link2, color: "text-blue-400" },
-  { value: "WEBSITE", label: "Website", icon: Globe, color: "text-emerald-400" },
-  { value: "TELEGRAM", label: "Telegram", icon: Send, color: "text-sky-400" },
+const CONTENT_PLATFORMS: { value: ContentPlatform; label: string; icon: React.ElementType; color: string; chipColor: string }[] = [
+  { value: "BLOG",     label: "Blog",     icon: FileText, color: "text-amber-400",   chipColor: "bg-amber-500/25 text-amber-300 border border-amber-500/30" },
+  { value: "LINKEDIN", label: "LinkedIn", icon: Link2,    color: "text-blue-400",    chipColor: "bg-blue-500/25 text-blue-300 border border-blue-500/30" },
+  { value: "WEBSITE",  label: "Website",  icon: Globe,    color: "text-emerald-400", chipColor: "bg-emerald-500/25 text-emerald-300 border border-emerald-500/30" },
+  { value: "TELEGRAM", label: "Telegram", icon: Send,     color: "text-sky-400",     chipColor: "bg-sky-500/25 text-sky-300 border border-sky-500/30" },
 ]
 
 const CONTENT_STATUSES: { value: ContentStatus; label: string; color: string }[] = [
-  { value: "IDEA", label: "Idea", color: "bg-gray-700 text-gray-300" },
-  { value: "DRAFT", label: "Draft", color: "bg-yellow-500/20 text-yellow-400" },
+  { value: "IDEA",      label: "Idea",      color: "bg-gray-700 text-gray-300" },
+  { value: "DRAFT",     label: "Draft",     color: "bg-yellow-500/20 text-yellow-400" },
   { value: "SCHEDULED", label: "Scheduled", color: "bg-blue-500/20 text-blue-400" },
   { value: "PUBLISHED", label: "Published", color: "bg-green-500/20 text-green-400" },
 ]
 
 const JOB_PLATFORMS: { value: JobPlatform; label: string }[] = [
-  { value: "UPWORK", label: "Upwork" },
-  { value: "INDEED", label: "Indeed" },
+  { value: "UPWORK",   label: "Upwork" },
+  { value: "INDEED",   label: "Indeed" },
   { value: "LINKEDIN", label: "LinkedIn" },
-  { value: "DIRECT", label: "Direct" },
-  { value: "OTHER", label: "Other" },
+  { value: "DIRECT",   label: "Direct" },
+  { value: "OTHER",    label: "Other" },
 ]
 
 const JOB_STATUSES: { value: JobStatus; label: string; color: string }[] = [
-  { value: "SAVED", label: "Saved", color: "bg-gray-700 text-gray-300" },
-  { value: "APPLIED", label: "Applied", color: "bg-blue-500/20 text-blue-400" },
-  { value: "SCREENING", label: "Screening", color: "bg-yellow-500/20 text-yellow-400" },
-  { value: "INTERVIEW", label: "Interview", color: "bg-purple-500/20 text-purple-400" },
-  { value: "OFFER", label: "Offer", color: "bg-green-500/20 text-green-400" },
-  { value: "REJECTED", label: "Rejected", color: "bg-red-500/20 text-red-400" },
+  { value: "SAVED",      label: "Saved",      color: "bg-gray-700 text-gray-300" },
+  { value: "APPLIED",    label: "Applied",    color: "bg-blue-500/20 text-blue-400" },
+  { value: "SCREENING",  label: "Screening",  color: "bg-yellow-500/20 text-yellow-400" },
+  { value: "INTERVIEW",  label: "Interview",  color: "bg-purple-500/20 text-purple-400" },
+  { value: "OFFER",      label: "Offer",      color: "bg-green-500/20 text-green-400" },
+  { value: "REJECTED",   label: "Rejected",   color: "bg-red-500/20 text-red-400" },
+]
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+const MONTHS = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -76,6 +84,10 @@ const JOB_STATUSES: { value: JobStatus; label: string; color: string }[] = [
 function fmtDate(dateStr: string | null) {
   if (!dateStr) return null
   return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+}
+
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10)
 }
 
 function ContentBadge({ platform }: { platform: ContentPlatform }) {
@@ -93,6 +105,148 @@ function StatusBadge({ status, statuses }: { status: string; statuses: { value: 
   const s = statuses.find((x) => x.value === status)
   if (!s) return null
   return <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", s.color)}>{s.label}</span>
+}
+
+// ─── Calendar Component ───────────────────────────────────────────────────────
+
+function ContentCalendar({
+  items,
+  onEdit,
+}: {
+  items: ContentItem[]
+  onEdit: (item: ContentItem) => void
+}) {
+  const today = new Date()
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth()) // 0-indexed
+
+  function prevMonth() {
+    if (month === 0) { setMonth(11); setYear(y => y - 1) }
+    else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 11) { setMonth(0); setYear(y => y + 1) }
+    else setMonth(m => m + 1)
+  }
+
+  // Build calendar grid (Mon-Sun weeks)
+  const firstDay = new Date(year, month, 1)
+  const lastDay  = new Date(year, month + 1, 0)
+  // getDay(): 0=Sun,1=Mon,...6=Sat → convert to Mon-first: Mon=0,...Sun=6
+  const startOffset = (firstDay.getDay() + 6) % 7
+  const totalCells  = Math.ceil((startOffset + lastDay.getDate()) / 7) * 7
+
+  const cells: (Date | null)[] = Array.from({ length: totalCells }, (_, i) => {
+    const dayNum = i - startOffset + 1
+    if (dayNum < 1 || dayNum > lastDay.getDate()) return null
+    return new Date(year, month, dayNum)
+  })
+
+  // Map contentItems by scheduledAt date string
+  const itemsByDate: Record<string, ContentItem[]> = {}
+  items.forEach((item) => {
+    if (!item.scheduledAt) return
+    const key = item.scheduledAt.slice(0, 10)
+    if (!itemsByDate[key]) itemsByDate[key] = []
+    itemsByDate[key].push(item)
+  })
+
+  const todayStr = isoDate(today)
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      {/* Month header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+        <button onClick={prevMonth} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+          <ChevronLeft size={18} />
+        </button>
+        <h3 className="text-base font-semibold text-white">
+          {MONTHS[month]} {year}
+        </h3>
+        <button onClick={nextMonth} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 border-b border-gray-800">
+        {WEEKDAYS.map((d) => (
+          <div key={d} className="py-2 text-center text-xs font-medium text-gray-500">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7">
+        {cells.map((date, idx) => {
+          if (!date) {
+            return <div key={idx} className="min-h-[90px] border-b border-r border-gray-800/60 last:border-r-0 bg-gray-950/30" />
+          }
+          const dateStr = isoDate(date)
+          const dayItems = itemsByDate[dateStr] ?? []
+          const isToday  = dateStr === todayStr
+          const isWeekend = date.getDay() === 0 || date.getDay() === 6
+          const colIdx = idx % 7
+          const isLastCol = colIdx === 6
+
+          return (
+            <div
+              key={idx}
+              className={cn(
+                "min-h-[90px] p-1.5 border-b border-r border-gray-800/60 flex flex-col gap-1",
+                isLastCol && "border-r-0",
+                isWeekend && "bg-gray-900/40",
+              )}
+            >
+              {/* Day number */}
+              <span className={cn(
+                "text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full self-end shrink-0",
+                isToday ? "bg-indigo-600 text-white" : "text-gray-500"
+              )}>
+                {date.getDate()}
+              </span>
+
+              {/* Content chips */}
+              {dayItems.slice(0, 3).map((item) => {
+                const p = CONTENT_PLATFORMS.find((x) => x.value === item.platform)!
+                const Icon = p.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onEdit(item)}
+                    title={item.title}
+                    className={cn(
+                      "w-full text-left rounded px-1.5 py-0.5 flex items-center gap-1 text-[10px] font-medium truncate transition-opacity hover:opacity-80",
+                      p.chipColor
+                    )}
+                  >
+                    <Icon size={9} className="shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                  </button>
+                )
+              })}
+              {dayItems.length > 3 && (
+                <span className="text-[10px] text-gray-500 px-1">+{dayItems.length - 3} more</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 px-5 py-3 border-t border-gray-800">
+        {CONTENT_PLATFORMS.map((p) => {
+          const Icon = p.icon
+          return (
+            <span key={p.value} className={cn("flex items-center gap-1 text-xs", p.color)}>
+              <Icon size={11} /> {p.label}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 // ─── Content Modal ────────────────────────────────────────────────────────────
@@ -388,6 +542,7 @@ function JobModal({
 
 export default function ContentPage() {
   const [tab, setTab] = useState<"content" | "jobs">("content")
+  const [contentView, setContentView] = useState<"list" | "calendar">("calendar")
 
   // Content state
   const [contentItems, setContentItems] = useState<ContentItem[]>([])
@@ -428,7 +583,6 @@ export default function ContentPage() {
   useEffect(() => { fetchContent() }, [fetchContent])
   useEffect(() => { fetchJobs() }, [fetchJobs])
 
-  // Content CRUD
   async function saveContent(data: Partial<ContentItem>) {
     if (data.id) {
       await fetch(`/api/content/${data.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
@@ -445,7 +599,6 @@ export default function ContentPage() {
     fetchContent()
   }
 
-  // Job CRUD
   async function saveJob(data: Partial<JobApplication>) {
     if (data.id) {
       await fetch(`/api/jobs/${data.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
@@ -468,7 +621,6 @@ export default function ContentPage() {
     setter(next)
   }
 
-  // Stats
   const contentByStatus = CONTENT_STATUSES.map((s) => ({
     ...s,
     count: contentItems.filter((c) => c.status === s.value).length,
@@ -517,7 +669,7 @@ export default function ContentPage() {
 
       {/* ── CONTENT TAB ───────────────────────────────────────────────────── */}
       {tab === "content" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {contentByStatus.map((s) => (
@@ -535,31 +687,54 @@ export default function ContentPage() {
             ))}
           </div>
 
-          {/* Platform filter */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setContentPlatformFilter("")}
-              className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-colors", !contentPlatformFilter ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white")}
-            >
-              All
-            </button>
-            {CONTENT_PLATFORMS.map((p) => {
-              const Icon = p.icon
-              return (
-                <button
-                  key={p.value}
-                  onClick={() => setContentPlatformFilter(contentPlatformFilter === p.value ? "" : p.value)}
-                  className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors", contentPlatformFilter === p.value ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white")}
-                >
-                  <Icon size={12} /> {p.label}
-                </button>
-              )
-            })}
+          {/* Toolbar: platform filter + view toggle */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setContentPlatformFilter("")}
+                className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-colors", !contentPlatformFilter ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white")}
+              >
+                All
+              </button>
+              {CONTENT_PLATFORMS.map((p) => {
+                const Icon = p.icon
+                return (
+                  <button
+                    key={p.value}
+                    onClick={() => setContentPlatformFilter(contentPlatformFilter === p.value ? "" : p.value)}
+                    className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors", contentPlatformFilter === p.value ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white")}
+                  >
+                    <Icon size={12} /> {p.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* View toggle */}
+            <div className="flex gap-1 bg-gray-800 rounded-lg p-1 shrink-0">
+              <button
+                onClick={() => setContentView("calendar")}
+                className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors", contentView === "calendar" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white")}
+              >
+                <CalendarDays size={13} /> Calendar
+              </button>
+              <button
+                onClick={() => setContentView("list")}
+                className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors", contentView === "list" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white")}
+              >
+                <List size={13} /> List
+              </button>
+            </div>
           </div>
 
-          {/* Content list */}
+          {/* Content view */}
           {contentLoading ? (
             <div className="text-center py-12 text-gray-500">Loading...</div>
+          ) : contentView === "calendar" ? (
+            <ContentCalendar
+              items={contentItems}
+              onEdit={(item) => setContentModal({ open: true, item })}
+            />
           ) : contentItems.length === 0 ? (
             <div className="text-center py-16 bg-gray-900 border border-gray-800 rounded-2xl">
               <Lightbulb size={32} className="mx-auto text-gray-700 mb-3" />
@@ -630,7 +805,6 @@ export default function ContentPage() {
       {/* ── JOBS TAB ──────────────────────────────────────────────────────── */}
       {tab === "jobs" && (
         <div className="space-y-6">
-          {/* Stats row */}
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             {jobsByStatus.map((s) => (
               <button
@@ -647,7 +821,6 @@ export default function ContentPage() {
             ))}
           </div>
 
-          {/* Platform filter */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setJobPlatformFilter("")}
@@ -666,7 +839,6 @@ export default function ContentPage() {
             ))}
           </div>
 
-          {/* Jobs list */}
           {jobsLoading ? (
             <div className="text-center py-12 text-gray-500">Loading...</div>
           ) : jobs.length === 0 ? (
@@ -701,25 +873,17 @@ export default function ContentPage() {
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {job.url && (
-                          <a
-                            href={job.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-gray-800 transition-colors"
-                          >
+                          <a href={job.url} target="_blank" rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-gray-800 transition-colors">
                             <ExternalLink size={14} />
                           </a>
                         )}
-                        <button
-                          onClick={() => setJobModal({ open: true, job })}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
-                        >
+                        <button onClick={() => setJobModal({ open: true, job })}
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
                           <Pencil size={14} />
                         </button>
-                        <button
-                          onClick={() => deleteJob(job.id)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors"
-                        >
+                        <button onClick={() => deleteJob(job.id)}
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </div>
