@@ -79,6 +79,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<"list" | "status" | "moscow">("list")
   const [selectedSprintId, setSelectedSprintId] = useState<string>("all")
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month" | "overdue">("all")
 
   // Task modal
   const [taskModal, setTaskModal] = useState<"create" | "edit" | null>(null)
@@ -128,9 +129,34 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => { fetchProject() }, [id])
 
-  const filteredTasks = project?.tasks.filter(t =>
-    selectedSprintId === "all" ? true : t.sprintId === selectedSprintId
-  ) ?? []
+  const filteredTasks = (() => {
+    const now = new Date()
+    const startOf = (unit: "day" | "week" | "month") => {
+      const d = new Date(now)
+      if (unit === "day") { d.setHours(0, 0, 0, 0) }
+      else if (unit === "week") { d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay() + 1) }
+      else { d.setHours(0, 0, 0, 0); d.setDate(1) }
+      return d
+    }
+    const endOf = (unit: "day" | "week" | "month") => {
+      const d = new Date(now)
+      if (unit === "day") { d.setHours(23, 59, 59, 999) }
+      else if (unit === "week") { d.setHours(23, 59, 59, 999); d.setDate(d.getDate() - d.getDay() + 7) }
+      else { d.setHours(23, 59, 59, 999); d.setMonth(d.getMonth() + 1); d.setDate(0) }
+      return d
+    }
+    return (project?.tasks ?? []).filter(t => {
+      if (selectedSprintId !== "all" && t.sprintId !== selectedSprintId) return false
+      if (dateFilter === "all") return true
+      if (!t.deadline) return false
+      const dl = new Date(t.deadline)
+      if (dateFilter === "today") return dl >= startOf("day") && dl <= endOf("day")
+      if (dateFilter === "week") return dl >= startOf("week") && dl <= endOf("week")
+      if (dateFilter === "month") return dl >= startOf("month") && dl <= endOf("month")
+      if (dateFilter === "overdue") return dl < startOf("day") && t.status !== "DONE"
+      return true
+    })
+  })()
 
   // Task CRUD
   const openCreateTask = () => {
@@ -275,7 +301,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* Action bar */}
-      <div className="flex items-center justify-between mb-6 mt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 mt-4">
         <div className="flex bg-gray-900 border border-gray-800 rounded-xl p-1">
           {(["list", "status", "moscow"] as const).map(v => (
             <button
@@ -287,9 +313,32 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </button>
           ))}
         </div>
-        <button onClick={openCreateTask} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors">
-          <Plus size={16} /> New Task
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-gray-900 border border-gray-800 rounded-xl p-1 gap-0.5">
+            {([
+              { key: "all", label: "All" },
+              { key: "today", label: "Today" },
+              { key: "week", label: "This Week" },
+              { key: "month", label: "This Month" },
+              { key: "overdue", label: "Overdue" },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setDateFilter(key)}
+                className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  dateFilter === key
+                    ? key === "overdue" ? "bg-red-600 text-white" : "bg-indigo-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={openCreateTask} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors">
+            <Plus size={16} /> New Task
+          </button>
+        </div>
       </div>
 
       {/* LIST VIEW */}
