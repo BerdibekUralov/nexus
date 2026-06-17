@@ -39,9 +39,18 @@ const labelCls = "block text-sm text-gray-400 mb-1.5"
 interface TaskForm { title: string; description: string; deadline: string; priority: Priority; status: TaskStatus; tagIds: string[] }
 interface SprintForm { name: string; goal: string; startDate: string; endDate: string; status: SprintStatus }
 
-function TaskCard({ task, onEdit, onDelete }: { task: Task; onEdit: () => void; onDelete: () => void }) {
+function TaskCard({
+  task, onEdit, onDelete, onDragStart,
+}: {
+  task: Task; onEdit: () => void; onDelete: () => void
+  onDragStart: (e: React.DragEvent) => void
+}) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 group">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      className="bg-gray-900 border border-gray-800 rounded-xl p-3 group cursor-grab active:cursor-grabbing active:opacity-50 active:scale-95 transition-all"
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-white text-sm font-medium leading-snug">{task.title}</p>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -84,6 +93,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [sprintForm, setSprintForm] = useState<SprintForm>({ name: "", goal: "", startDate: "", endDate: "", status: "PLANNED" })
   const [sprintSaving, setSprintSaving] = useState(false)
   const [deleteSprintId, setDeleteSprintId] = useState<string | null>(null)
+
+  // Drag-and-drop
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState<string | null>(null)
+
+  const handleDrop = async (targetCol: string, field: "status" | "priority") => {
+    if (!dragTaskId || !project) return
+    const task = project.tasks.find(t => t.id === dragTaskId)
+    if (!task) return
+    if (field === "status" && task.status === targetCol) return
+    if (field === "priority" && task.priority === targetCol) return
+    setProject(p => p ? { ...p, tasks: p.tasks.map(t => t.id === dragTaskId ? { ...t, [field]: targetCol as never } : t) } : p)
+    await fetch(`/api/projects/${id}/tasks/${dragTaskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: targetCol }),
+    })
+    setDragTaskId(null)
+    setDragOver(null)
+  }
 
   // Tag management
   const [tagName, setTagName] = useState("")
@@ -309,8 +338,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="grid grid-cols-4 gap-4">
           {STATUS_COLS.map(status => {
             const tasks = filteredTasks.filter(t => t.status === status)
+            const isOver = dragOver === status
             return (
-              <div key={status} className="bg-gray-900/50 rounded-2xl p-4 border border-gray-800">
+              <div
+                key={status}
+                onDragOver={e => { e.preventDefault(); setDragOver(status) }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={() => handleDrop(status, "status")}
+                className={`rounded-2xl p-4 border transition-colors min-h-[120px] ${isOver ? "bg-indigo-500/10 border-indigo-500/50" : "bg-gray-900/50 border-gray-800"}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2.5 py-1 rounded-full ${STATUS_COLOR[status]}`}>{STATUS_LABEL[status]}</span>
@@ -319,7 +355,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="space-y-2">
                   {tasks.map(t => (
-                    <TaskCard key={t.id} task={t} onEdit={() => openEditTask(t)} onDelete={() => setDeleteTaskId(t.id)} />
+                    <TaskCard key={t.id} task={t} onEdit={() => openEditTask(t)} onDelete={() => setDeleteTaskId(t.id)}
+                      onDragStart={e => { e.dataTransfer.effectAllowed = "move"; setDragTaskId(t.id) }}
+                    />
                   ))}
                 </div>
               </div>
@@ -333,15 +371,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="grid grid-cols-4 gap-4">
           {MOSCOW_COLS.map(priority => {
             const tasks = filteredTasks.filter(t => t.priority === priority)
+            const isOver = dragOver === priority
             return (
-              <div key={priority} className="bg-gray-900/50 rounded-2xl p-4 border border-gray-800">
+              <div
+                key={priority}
+                onDragOver={e => { e.preventDefault(); setDragOver(priority) }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={() => handleDrop(priority, "priority")}
+                className={`rounded-2xl p-4 border transition-colors min-h-[120px] ${isOver ? "bg-indigo-500/10 border-indigo-500/50" : "bg-gray-900/50 border-gray-800"}`}
+              >
                 <div className="flex items-center gap-2 mb-4">
                   <span className={`text-xs px-2.5 py-1 rounded-full ${PRIORITY_COLOR[priority]}`}>{PRIORITY_LABEL[priority]}</span>
                   <span className="text-gray-500 text-xs">{tasks.length}</span>
                 </div>
                 <div className="space-y-2">
                   {tasks.map(t => (
-                    <TaskCard key={t.id} task={t} onEdit={() => openEditTask(t)} onDelete={() => setDeleteTaskId(t.id)} />
+                    <TaskCard key={t.id} task={t} onEdit={() => openEditTask(t)} onDelete={() => setDeleteTaskId(t.id)}
+                      onDragStart={e => { e.dataTransfer.effectAllowed = "move"; setDragTaskId(t.id) }}
+                    />
                   ))}
                 </div>
               </div>
