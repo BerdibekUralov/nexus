@@ -47,7 +47,7 @@ function getPeriodParams(period: PeriodType, month: number, year: number, selDay
 
 export default function FinancePage() {
   const [tab, setTab] = useState<"transactions" | "budgets" | "categories">("transactions")
-  const [period, setPeriod] = useState<PeriodType>("monthly")
+  const [period, setPeriod] = useState<PeriodType>("daily")
   const now = new Date()
   const [selDay, setSelDay] = useState(localDateStr(now))
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1)
