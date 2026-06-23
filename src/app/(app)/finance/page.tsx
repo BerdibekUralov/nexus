@@ -26,9 +26,16 @@ function parseAmount(s: string) {
   return parseFloat(s.replace(/\s/g, "").replace(",", ".")) || 0
 }
 
-function getPeriodParams(period: PeriodType, month: number, year: number) {
+function localDateStr(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
+function getPeriodParams(period: PeriodType, month: number, year: number, selDay: string) {
   const now = new Date()
-  if (period === "daily") return `period=daily&day=${now.toISOString().split("T")[0]}`
+  if (period === "daily") return `period=daily&day=${selDay}`
   if (period === "weekly") return `period=weekly`
   if (period === "monthly") return `period=monthly&month=${month}&year=${year}`
   if (period === "quarterly") {
@@ -42,6 +49,7 @@ export default function FinancePage() {
   const [tab, setTab] = useState<"transactions" | "budgets" | "categories">("transactions")
   const [period, setPeriod] = useState<PeriodType>("monthly")
   const now = new Date()
+  const [selDay, setSelDay] = useState(localDateStr(now))
   const [selMonth, setSelMonth] = useState(now.getMonth() + 1)
   const [selYear, setSelYear] = useState(now.getFullYear())
 
@@ -52,7 +60,7 @@ export default function FinancePage() {
 
   const [txModal, setTxModal] = useState<"create" | "edit" | null>(null)
   const [editTxId, setEditTxId] = useState<string | null>(null)
-  const [txForm, setTxForm] = useState<TxForm>({ amount: "", type: "EXPENSE", categoryId: "", date: now.toISOString().split("T")[0], note: "" })
+  const [txForm, setTxForm] = useState<TxForm>({ amount: "", type: "EXPENSE", categoryId: "", date: localDateStr(now), note: "" })
   const [txSaving, setTxSaving] = useState(false)
   const [deleteTxId, setDeleteTxId] = useState<string | null>(null)
 
@@ -74,7 +82,7 @@ export default function FinancePage() {
 
   const fetchAll = async () => {
     setLoading(true)
-    const params = getPeriodParams(period, selMonth, selYear)
+    const params = getPeriodParams(period, selMonth, selYear, selDay)
     const [txRes, catRes, budRes] = await Promise.all([
       fetch(`/api/finance/transactions?${params}`),
       fetch("/api/finance/categories"),
@@ -86,7 +94,7 @@ export default function FinancePage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchAll() }, [period, selMonth, selYear])
+  useEffect(() => { fetchAll() }, [period, selDay, selMonth, selYear])
 
   // When type changes in tx form, auto-select first matching category
   const handleTxTypeChange = (type: TransactionType) => {
@@ -101,7 +109,7 @@ export default function FinancePage() {
   // TX CRUD
   const openCreateTx = () => {
     const firstExpenseCat = categories.find(c => c.type === "EXPENSE")
-    setTxForm({ amount: "", type: "EXPENSE", categoryId: firstExpenseCat?.id || "", date: now.toISOString().split("T")[0], note: "" })
+    setTxForm({ amount: "", type: "EXPENSE", categoryId: firstExpenseCat?.id || "", date: localDateStr(now), note: "" })
     setEditTxId(null)
     setTxModal("create")
   }
@@ -194,6 +202,14 @@ export default function FinancePage() {
             </button>
           ))}
         </div>
+        {period === "daily" && (
+          <input
+            type="date"
+            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+            value={selDay}
+            onChange={e => setSelDay(e.target.value)}
+          />
+        )}
         {period === "monthly" && (
           <div className="flex gap-2">
             <select className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500" value={selMonth} onChange={e => setSelMonth(Number(e.target.value))}>
