@@ -30,6 +30,7 @@ model User {
   notifications    Notification[]
   contentItems     ContentItem[]
   jobApplications  JobApplication[]
+  timeBlocks       TimeBlock[]
 }
 
 model Session {
@@ -109,6 +110,7 @@ model Task {
   assignees     TaskAssignee[]
   tags          TaskTag[]
   notifications Notification[]
+  timeBlocks    TimeBlock[]
 }
 
 model TaskAssignee {
@@ -429,6 +431,24 @@ enum JobStatus {
   INTERVIEW
   OFFER
   REJECTED
+}
+
+// ─── SCHEDULE ────────────────────────────────────────────────────────────────
+
+model TimeBlock {
+  id       String   @id @default(cuid())
+  userId   String
+  taskId   String?
+  title    String?
+  date     DateTime @db.Date
+  startMin Int
+  endMin   Int
+  color    String   @default("#6366f1")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
 }
 
 // ─── NOTIFICATIONS ───────────────────────────────────────────────────────────

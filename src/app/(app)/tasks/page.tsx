@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, X, Kanban, Zap, ChevronRight } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Kanban, Zap, ChevronRight, CalendarDays } from "lucide-react"
 import Link from "next/link"
 
 interface Project {
@@ -81,9 +81,14 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold text-white">Task Management</h1>
           <p className="text-gray-400 text-sm mt-1">{projects.length} project{projects.length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors">
-          <Plus size={16} /> New Project
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/tasks/schedule" className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition-colors border border-gray-700">
+            <CalendarDays size={16} /> Schedule
+          </Link>
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors">
+            <Plus size={16} /> New Project
+          </button>
+        </div>
       </div>
 
       {loading ? (
